@@ -2,6 +2,7 @@ package io.github.mauricio_mds.products.service;
 
 import io.github.mauricio_mds.core.ProductCreatedEvent;
 import io.github.mauricio_mds.products.rest.CreateProductRestModel;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +29,12 @@ public class ProductServiceImpl implements ProductService{
                 productRestModel.getPrice(),
                 productRestModel.getQuantity()
         );
+
+        ProducerRecord<String, ProductCreatedEvent> record =
+                new ProducerRecord<>("product-created-events-topic", productId, productCreatedEvent);
+        record.headers().add("messageId", UUID.randomUUID().toString().getBytes());
         SendResult<String, ProductCreatedEvent> result =
-                kafkaTemplate.send("product-created-events-topic", productId, productCreatedEvent).get();
+                kafkaTemplate.send(record).get();
         LOGGER.info("Partition: " + result.getRecordMetadata().partition());
         LOGGER.info("Topic: " + result.getRecordMetadata().topic());
         LOGGER.info("Offset: " + result.getRecordMetadata().offset());
